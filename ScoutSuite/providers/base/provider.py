@@ -34,6 +34,9 @@ class BaseProvider:
 
         self.last_run = None
         self.metadata = None
+        # Per-service collection errors of the current/last fetch, as built by
+        # BaseServicesConfig: {service: {'errors': [...], 'fetch_failed': bool}}
+        self.fetch_errors = {}
 
         self._load_metadata()
 
@@ -81,6 +84,10 @@ class BaseProvider:
         # TODO: determine partition name based on regions and warn if multiple partitions...
         await self.services.fetch(self.service_list, regions, excluded_regions)
 
+        # Keep the per-service collection outcome so it can be reported in
+        # last_run.summary once the run completes
+        self.fetch_errors = getattr(self.services, 'fetch_errors', {})
+
         # TODO implement this properly
         """
         This is quite ugly but the legacy Scout expects the configurations to be dictionaries.
@@ -88,6 +95,8 @@ class BaseProvider:
         """
         report = ScoutReport(self.provider_code, 'placeholder')
         self.services = report.encoder.to_dict(self.services)
+        # fetch_errors is an attribute of the services config, not a service
+        self.services.pop('fetch_errors', None)
 
     def _load_metadata(self):
         """
@@ -124,12 +133,35 @@ class BaseProvider:
             'summary': {}
         }
 
+        fetch_errors = getattr(self, 'fetch_errors', None)
+        if not isinstance(fetch_errors, dict):
+            fetch_errors = {}
+
         for service in self.services:
+            service_fetch_errors = fetch_errors.get(service) or {}
+            error_messages = service_fetch_errors.get('errors', [])
+            fetch_failed = service_fetch_errors.get('fetch_failed', False)
+
+            # Machine-readable collection/evaluation outcome for the service.
+            # This is driven by the errors recorded while fetching the service,
+            # never by the number of checked/flagged items, so that services
+            # which were collected normally but legitimately have no resources
+            # or no flagged items are still reported as evaluated.
+            if fetch_failed or self.services[service] is None \
+                    or service not in self.service_list:
+                evaluation_status = 'not_evaluated'
+            elif error_messages:
+                evaluation_status = 'partially_evaluated'
+            else:
+                evaluation_status = 'evaluated'
+
             last_run['summary'][service] = {'checked_items': 0,
                                             'flagged_items': 0,
                                             'max_level': 'warning',
                                             'rules_count': 0,
-                                            'resources_count': 0}
+                                            'resources_count': 0,
+                                            'evaluation_status': evaluation_status,
+                                            'fetch_errors': error_messages}
             if self.services[service] is None:
                 # Not supported yet
                 continue

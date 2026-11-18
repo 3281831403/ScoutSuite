@@ -125,11 +125,27 @@
                                 </div>
                             </a>
                             {{#each items.summary}}
+                            {{#ifEqual evaluation_status 'not_evaluated'}}
+                            <div class="card finding-title finding-title-unknown plain-link">
+                                <div class="finding-title card-header">
+                                    <i class="fa finding-badge finding-badge-unknown"></i>
+                                    {{makeTitle @key}}
+                                    <span class="badge badge-secondary">Not evaluated</span>
+                                    <div class="col-sm-2 float-right" style="text-align: center">-</div>
+                                    <div class="col-sm-2 float-right" style="text-align: center">-</div>
+                                    <div class="col-sm-2 float-right" style="text-align: center">-</div>
+                                    <div class="col-sm-2 float-right" style="text-align: center">-</div>
+                                </div>
+                            </div>
+                            {{else}}
                             <div class="card finding-title finding-title-{{dashboard_color level rules_count rules_count}} plain-link">
                                 <a href="#services.{{@key}}.findings">
                                     <div class="finding-title card-header">
                                         <i class="fa finding-badge finding-badge-{{dashboard_color max_level checked_items flagged_items}}"></i>
                                         {{makeTitle @key}}
+                                        {{#ifEqual evaluation_status 'partially_evaluated'}}
+                                        <span class="badge badge-warning">Partially evaluated</span>
+                                        {{/ifEqual}}
                                         <div class="col-sm-2 float-right" style="text-align: center">{{checked_items}}</div>
                                         <div class="col-sm-2 float-right" style="text-align: center">{{flagged_items}}</div>
                                         <div class="col-sm-2 float-right" style="text-align: center">{{rules_count}}</div>
@@ -137,6 +153,7 @@
                                     </div>
                                 </a>
                             </div>
+                            {{/ifEqual}}
                             {{/each}}
                         </div>
                     </div>

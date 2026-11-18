@@ -420,7 +420,9 @@ async def _run(provider,
         url = 'file://%s' % os.path.abspath(html_report_path)
         webbrowser.open(url, new=2)
 
-    if ERRORS_LIST:  # errors were handled during execution
+    if ERRORS_LIST or getattr(cloud_provider, 'fetch_errors', None):
+        # errors were handled during execution, or at least one service was
+        # not (fully) evaluated because its collection failed
         return 200
     else:
         return 0

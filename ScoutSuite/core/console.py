@@ -1,3 +1,4 @@
+import contextvars
 import logging
 import platform
 import os
@@ -14,6 +15,12 @@ from ScoutSuite import ERRORS_LIST
 
 verbose_exceptions = False
 logger = logging.getLogger('scout')
+
+# Name of the service currently being fetched (set by the services config while
+# a service fetch is in flight). Used to attribute handled exceptions to the
+# service whose collection was in progress when they occurred. This propagates
+# through the asyncio task tree created for a service fetch.
+fetching_service = contextvars.ContextVar('scoutsuite_fetching_service', default=None)
 
 
 def set_logger_configuration(is_debug=False, quiet=False, output_file_path=None):
@@ -107,6 +114,7 @@ def print_exception(exception, additional_details=None):
                         'line': line_number,
                         'exception': f'{exception}',
                         'traceback': f'{traceback_exc}',
+                        'service': fetching_service.get(),
                         'additional_details': additional_details})
 
 
