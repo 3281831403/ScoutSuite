@@ -37,7 +37,7 @@ def pass_conditions(all_info, current_path, conditions, unknown_as_pass_conditio
             # Conditions are formed as "path to value", "type of test", "value(s) for test"
             path_to_value, test_name, test_values = condition
             path_to_value = fix_path_string(all_info, current_path, path_to_value)
-            target_obj = get_value_at(all_info, current_path, path_to_value)
+            target_obj = get_value_at(all_info, current_path, path_to_value, test_name=test_name)
             if type(test_values) != list and type(test_values) != dict:
                 dynamic_value = re_get_value_at.match(test_values)
                 if dynamic_value:
@@ -91,7 +91,10 @@ def pass_condition(b, test, a):
 
     # Empty tests
     elif test == 'empty':
-        result = ((type(b) == dict and b == {}) or (type(b) == list and b == []) or (type(b) == list and b == [None]))
+        result = (b is None
+                  or (type(b) == dict and b == {})
+                  or (type(b) == list and b == [])
+                  or (type(b) == list and b == [None]))
     elif test == 'notEmpty':
         result = (not pass_condition(b, 'empty', 'a'))
     elif test == 'null':
