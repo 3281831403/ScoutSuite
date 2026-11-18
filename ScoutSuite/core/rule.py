@@ -2,7 +2,7 @@ import json
 import re
 
 from ScoutSuite.core.fs import read_ip_ranges
-from ScoutSuite.core.console import print_exception
+from ScoutSuite.core.console import print_exception, print_error
 
 from ScoutSuite.utils import format_service_name
 
@@ -28,6 +28,23 @@ testcases = [
     }
 ]
 
+# Textual representations accepted in place of JSON booleans
+BOOLEAN_STRINGS = {'true': True, 'false': False, 'yes': True, 'no': False,
+                   '1': True, '0': False, 'on': True, 'off': False}
+
+
+def coerce_boolean(value):
+    """
+    Return a real boolean for actual booleans and recognized textual booleans.
+    Any other value raises ValueError instead of being truthiness-coerced,
+    e.g. the string "false" must not evaluate to True.
+    """
+    if type(value) == bool:
+        return value
+    if type(value) == str and value.lower() in BOOLEAN_STRINGS:
+        return BOOLEAN_STRINGS[value.lower()]
+    raise ValueError('invalid boolean value: %r' % (value,))
+
 
 class Rule:
 
@@ -38,11 +55,17 @@ class Rule:
         self.data_path = data_path
         self.filename = filename
         self.rule_type = rule_type
-        self.enabled = bool(self.get_attribute('enabled', rule, False))
+        self.enabled = self._get_enabled(rule)
         self.level = self.get_attribute('level', rule, '')
         self.args = self.get_attribute('args', rule, [])
         self.conditions = self.get_attribute('conditions', rule, [])
         self.key_suffix = self.get_attribute('key_suffix', rule, None)
+
+    @staticmethod
+    def _get_enabled(rule):
+        if 'enabled' not in rule:
+            return False
+        return coerce_boolean(rule['enabled'])
 
     @staticmethod
     def get_attribute(name, rule, default_value):
@@ -87,7 +110,13 @@ class Rule:
             for param in parameters:
                 index = int(param[1])
                 if len(self.args) <= index:
-                    string_definition = string_definition.replace(param[0], '')
+                    # A missing argument previously turned the condition's test
+                    # value into an empty string, silently changing the rule's
+                    # result. Surface the problem and keep the rule from being
+                    # prepared instead.
+                    print_error('Error: rule %s requires argument %d but none was provided'
+                                % (self.filename, index))
+                    raise ValueError('missing argument %d for rule %s' % (index, self.filename))
                 elif type(self.args[index]) == list:
                     value = '[ %s ]' % ', '.join('"%s"' % v for v in self.args[index])
                     string_definition = string_definition.replace('"%s"' % param[0], value)

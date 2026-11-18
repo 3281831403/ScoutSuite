@@ -81,6 +81,7 @@ def run_from_cli():
                    max_rate=args.get('max_rate'),
                    ip_ranges=args.get('ip_ranges'), ip_ranges_name_key=args.get('ip_ranges_name_key'),
                    ruleset=args.get('ruleset'), exceptions=args.get('exceptions'),
+                   strict_ruleset=args.get('strict_ruleset'),
                    force_write=args.get('force_write'),
                    debug=args.get('debug'),
                    quiet=args.get('quiet'),
@@ -134,6 +135,7 @@ def run(provider,
         max_rate=None,
         ip_ranges=[], ip_ranges_name_key='name',
         ruleset='default.json', exceptions=None,
+        strict_ruleset=False,
         force_write=False,
         debug=False,
         quiet=False,
@@ -194,6 +196,7 @@ async def _run(provider,
                fetch_local, update,
                ip_ranges, ip_ranges_name_key,
                ruleset, exceptions,
+               strict_ruleset,
                force_write,
                debug,
                quiet,
@@ -359,7 +362,8 @@ async def _run(provider,
                                 environment_name=cloud_provider.environment,
                                 filename=ruleset,
                                 ip_ranges=ip_ranges,
-                                account_id=cloud_provider.account_id)
+                                account_id=cloud_provider.account_id,
+                                strict_validation=strict_ruleset)
         processing_engine = ProcessingEngine(finding_rules)
         processing_engine.run(cloud_provider)
     except Exception as e:

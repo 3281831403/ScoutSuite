@@ -364,6 +364,13 @@ class ScoutSuiteArgumentParser:
                             default='default.json',
                             nargs='?',
                             help='Set of rules to be used during the analysis.')
+        parser.add_argument('--strict-ruleset',
+                            dest='strict_ruleset',
+                            default=False,
+                            action='store_true',
+                            help='Fail the run instead of producing a report when the ruleset is '
+                                 'invalid: unknown rule names, duplicate finding keys, non-boolean '
+                                 '"enabled" values or rules missing required arguments.')
         parser.add_argument('--no-browser',
                             dest='no_browser',
                             default=False,
